@@ -7,9 +7,7 @@ import com.sephora.ecommerce.entities.Role;
 import com.sephora.ecommerce.entities.User;
 import com.sephora.ecommerce.exceptions.APIException;
 import com.sephora.ecommerce.exceptions.ResourceNotFoundException;
-import com.sephora.ecommerce.payloads.AddressDTO;
-import com.sephora.ecommerce.payloads.CartDTO;
-import com.sephora.ecommerce.payloads.UserDTO;
+import com.sephora.ecommerce.payloads.*;
 import com.sephora.ecommerce.repositories.AddressRepository;
 import com.sephora.ecommerce.repositories.CartRepository;
 import com.sephora.ecommerce.repositories.RoleRepository;
@@ -18,6 +16,10 @@ import com.sephora.ecommerce.services.UserService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -74,18 +76,17 @@ public class UserServiceImpl2 implements UserService {
     }
 
     @Override
-    public List<UserDTO> getAllUsers() {
-        List<User> users = userRepository.findAll();
-        List<UserDTO> usersDTO = users.stream().map(user -> {
-            UserDTO dto = modelMapper.map(user, UserDTO.class);
+    public UserResponse getAllUsers(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
+        Sort sortByAndOrder = sortOrder.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
 
-            // Get the first address if present and set it in the DTO
-//            user.getAddresses().stream()
-//                    .findFirst()
-//                    .ifPresent(address -> {
-//                        AddressDTO firstAddress = modelMapper.map(address, AddressDTO.class);
-//                        dto.setAddresses(Collections.singleton(firstAddress));
-//                    });
+        Pageable pageDetails = PageRequest.of(pageNumber, pageSize, sortByAndOrder);
+        Page<User> pageUsers = userRepository.findAll(pageDetails);
+        List<User> users = pageUsers.getContent();
+
+        List<UserWithCartDTO> usersDTOs = users.stream().map(user -> {
+            UserWithCartDTO dto = modelMapper.map(user, UserWithCartDTO.class);
+
             for (Address address : user.getAddresses()) {
                 AddressDTO firstAddress = modelMapper.map(address, AddressDTO.class);
                 dto.setAddresses(Collections.singleton(firstAddress));
@@ -97,7 +98,16 @@ public class UserServiceImpl2 implements UserService {
 
             return dto;
         }).collect(Collectors.toList());
-        return usersDTO;
+
+        UserResponse userResponse = new UserResponse();
+        userResponse.setContent(usersDTOs);
+        userResponse.setPageNumber(pageUsers.getNumber());
+        userResponse.setPageSize(pageUsers.getSize());
+        userResponse.setTotalElements(pageUsers.getTotalElements());
+        userResponse.setTotalPages(pageUsers.getTotalPages());
+        userResponse.setLastPage(pageUsers.isLast());
+
+        return userResponse;
     }
 
     @Override
@@ -106,8 +116,8 @@ public class UserServiceImpl2 implements UserService {
                 .orElseThrow(() -> new ResourceNotFoundException("User", "userId", userId));
         UserDTO userDTO = modelMapper.map(user, UserDTO.class);
 
-        CartDTO cartDTO = modelMapper.map(user.getCart(), CartDTO.class);
-        userDTO.setCartDTO(cartDTO);
+//        CartDTO cartDTO = modelMapper.map(user.getCart(), CartDTO.class);
+//        userDTO.setCartDTO(cartDTO);
 
         return userDTO;
     }
@@ -151,9 +161,6 @@ public class UserServiceImpl2 implements UserService {
         updatedUserDTO.setAddresses(updatedAddresses.stream()
                 .map(address -> modelMapper.map(address, AddressDTO.class))
                 .collect(Collectors.toSet()));
-
-        CartDTO cart = modelMapper.map(user.getCart(), CartDTO.class);
-        updatedUserDTO.setCartDTO(cart);
 
         return updatedUserDTO;
     }

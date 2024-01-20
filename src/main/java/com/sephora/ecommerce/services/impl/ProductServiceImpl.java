@@ -7,6 +7,7 @@ import com.sephora.ecommerce.exceptions.APIException;
 import com.sephora.ecommerce.exceptions.ResourceNotFoundException;
 import com.sephora.ecommerce.payloads.CartDTO;
 import com.sephora.ecommerce.payloads.ProductDTO;
+import com.sephora.ecommerce.payloads.ProductResponse;
 import com.sephora.ecommerce.repositories.CartRepository;
 import com.sephora.ecommerce.repositories.CategoryRepository;
 import com.sephora.ecommerce.repositories.ProductRepository;
@@ -17,6 +18,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.InputStreamResource;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -77,8 +82,14 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public List<ProductDTO> getAllProducts() {
-        List<Product> allProducts = productRepository.findAll();
+    public ProductResponse getAllProducts(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
+        Sort sortByAndOrder = sortOrder.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+
+        Pageable pageDetails = PageRequest.of(pageNumber, pageSize, sortByAndOrder);
+
+        Page<Product> pageProducts = productRepository.findAll(pageDetails);
+        List<Product> allProducts = pageProducts.getContent();
 
         List<ProductDTO> productDTOs = allProducts.stream()
                 .map(product -> {
@@ -86,17 +97,34 @@ public class ProductServiceImpl implements ProductService {
                     dto.setCategoryNames(mapCategoriesToCategoryNames(product.getCategories()));
                     return dto;
                 }).collect(Collectors.toList());
-        return productDTOs;
+
+        ProductResponse productResponse = new ProductResponse();
+        productResponse.setContent(productDTOs);
+        productResponse.setPageNumber(pageProducts.getNumber());
+        productResponse.setPageSize(pageProducts.getSize());
+        productResponse.setTotalElements(pageProducts.getTotalElements());
+        productResponse.setTotalPages(pageProducts.getTotalPages());
+        productResponse.setLastPage(pageProducts.isLast());
+
+        return productResponse;
     }
 
     @Override
-    public List<ProductDTO> searchByCategory(String categoryName) {
+    public ProductResponse searchByCategory(String categoryName, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
         Category savedCategory = categoryRepository.findByCategoryName(categoryName);
         if(savedCategory == null){
             throw new ResourceNotFoundException("Category","name", categoryName);
         }
 
-        List<Product> products = productRepository.findByCategoriesCategoryName(categoryName);
+        Sort sortByAndOrder = sortOrder.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+
+        Pageable pageDetails = PageRequest.of(pageNumber, pageSize, sortByAndOrder);
+
+        Page<Product> pageProducts = productRepository.findByCategoriesCategoryName(categoryName, pageDetails);
+
+        List<Product> products = pageProducts.getContent();
+
         if(products.isEmpty()){
             throw new APIException("No products found in the category with name '" + categoryName + "'.");
         }
@@ -108,13 +136,26 @@ public class ProductServiceImpl implements ProductService {
             return dto;
         }).collect(Collectors.toList());
 
-        return productDTOs;
+        ProductResponse productResponse = new ProductResponse();
+        productResponse.setContent(productDTOs);
+        productResponse.setPageNumber(pageProducts.getNumber());
+        productResponse.setPageSize(pageProducts.getSize());
+        productResponse.setTotalElements(pageProducts.getTotalElements());
+        productResponse.setTotalPages(pageProducts.getTotalPages());
+        productResponse.setLastPage(pageProducts.isLast());
+
+        return productResponse;
     }
 
     @Override
-    public List<ProductDTO> searchByKeyword(String keyword) {
-        List<Product> products = productRepository.findByProductNameLike("%" + keyword + "%");
-        System.out.println(products);
+    public ProductResponse searchByKeyword(String keyword, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
+        Sort sortByAndOrder = sortOrder.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+
+        Pageable pageDetails = PageRequest.of(pageNumber, pageSize, sortByAndOrder);
+        Page<Product> pageProducts = productRepository.findByProductNameLike("%" + keyword + "%", pageDetails);
+        List<Product> products = pageProducts.getContent();
+
         if(products.isEmpty()){
             throw new APIException("No products found with keyword '" + keyword + "'.");
         }
@@ -125,8 +166,16 @@ public class ProductServiceImpl implements ProductService {
                     dto.setCategoryNames(mapCategoriesToCategoryNames(product.getCategories()));
                     return dto;
                 }).collect(Collectors.toList());
-        System.out.println("ProductDTOs: " + productDTOs);
-        return productDTOs;
+
+        ProductResponse productResponse = new ProductResponse();
+        productResponse.setContent(productDTOs);
+        productResponse.setPageNumber(pageProducts.getNumber());
+        productResponse.setPageSize(pageProducts.getSize());
+        productResponse.setTotalElements(pageProducts.getTotalElements());
+        productResponse.setTotalPages(pageProducts.getTotalPages());
+        productResponse.setLastPage(pageProducts.isLast());
+
+        return productResponse;
     }
 
     @Override
