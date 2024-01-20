@@ -1,5 +1,6 @@
 package com.sephora.ecommerce.controllers;
 
+import com.sephora.ecommerce.entities.Cart;
 import com.sephora.ecommerce.payloads.CartDTO;
 import com.sephora.ecommerce.services.CartService;
 import org.springframework.http.HttpStatus;
@@ -35,6 +36,16 @@ public class CartController {
         return new ResponseEntity<>(cartDTO, HttpStatus.FOUND);
     }
 
+    @PatchMapping("/public/carts/{cartId}/products/{productId}/quantity/{quantity}")
+    public ResponseEntity<CartDTO> updateCartProduct(@PathVariable Long cartId, @PathVariable Long productId, @PathVariable Integer quantity){
+        CartDTO dto = cartService.updateProductQuantityInCart(cartId, productId, quantity);
+        return new ResponseEntity<>(dto, HttpStatus.OK);
+    }
 
+    @DeleteMapping("/public/carts/{cartId}/products/{productId}")
+    public ResponseEntity<String> deleteProductFromCart(@PathVariable Long cartId, @PathVariable Long productId){
+        String status = cartService.deleteProductFromCart(cartId, productId);
+        return new ResponseEntity<>(status, HttpStatus.OK);
+    }
 
 }

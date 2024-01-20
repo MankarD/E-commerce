@@ -1,12 +1,19 @@
 package com.sephora.ecommerce.services.impl;
 
 import com.sephora.ecommerce.entities.Category;
+import com.sephora.ecommerce.entities.User;
 import com.sephora.ecommerce.exceptions.APIException;
 import com.sephora.ecommerce.payloads.CategoryDTO;
+import com.sephora.ecommerce.payloads.CategoryResponse;
+import com.sephora.ecommerce.payloads.UserResponse;
 import com.sephora.ecommerce.repositories.CategoryRepository;
 import com.sephora.ecommerce.services.CategoryService;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,10 +45,25 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public List<CategoryDTO> getAllCategories() {
-        List<Category> categories = categoryRepository.findAll();
+    public CategoryResponse getAllCategories(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
+        Sort sortByAndOrder = sortOrder.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+
+        Pageable pageDetails = PageRequest.of(pageNumber, pageSize, sortByAndOrder);
+        Page<Category> pageCategories = categoryRepository.findAll(pageDetails);
+        List<Category> categories = pageCategories.getContent();
+
         List<CategoryDTO> categoryDTOs = categories.stream().map(category -> modelMapper.map(category, CategoryDTO.class)).collect(Collectors.toList());
-        return categoryDTOs;
+
+        CategoryResponse categoryResponse = new CategoryResponse();
+        categoryResponse.setContent(categoryDTOs);
+        categoryResponse.setPageNumber(pageCategories.getNumber());
+        categoryResponse.setPageSize(pageCategories.getSize());
+        categoryResponse.setTotalElements(pageCategories.getTotalElements());
+        categoryResponse.setTotalPages(pageCategories.getTotalPages());
+        categoryResponse.setLastPage(pageCategories.isLast());
+
+        return categoryResponse;
     }
 
     @Override

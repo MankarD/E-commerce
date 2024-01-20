@@ -1,6 +1,8 @@
 package com.sephora.ecommerce.controllers;
 
+import com.sephora.ecommerce.config.AppConstants;
 import com.sephora.ecommerce.payloads.CategoryDTO;
+import com.sephora.ecommerce.payloads.CategoryResponse;
 import com.sephora.ecommerce.services.CategoryService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,8 +26,13 @@ public class CategoryController {
     }
 
     @GetMapping("/public/categories")
-    public ResponseEntity<List<CategoryDTO>> getAllCategories(){
-        List<CategoryDTO> categoryDTOs = categoryService.getAllCategories();
+    public ResponseEntity<CategoryResponse> getAllCategories(
+            @RequestParam(name = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,
+            @RequestParam(name = "pageSize", defaultValue = AppConstants.PAGE_SIZE, required = false) Integer pageSize,
+            @RequestParam(name = "sortBy", defaultValue = AppConstants.SORT_CATEGORIES_BY, required = false) String sortBy,
+            @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_DIR, required = false) String sortOrder
+    ){
+        CategoryResponse categoryDTOs = categoryService.getAllCategories(pageNumber, pageSize, sortBy, sortOrder);
         return new ResponseEntity<>(categoryDTOs, HttpStatus.FOUND);
     }
 

@@ -2,6 +2,7 @@ package com.sephora.ecommerce.entities;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.redis.core.RedisHash;
 
 import java.util.HashSet;
 import java.util.Set;

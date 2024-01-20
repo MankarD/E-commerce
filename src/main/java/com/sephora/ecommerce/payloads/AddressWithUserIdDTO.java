@@ -4,10 +4,12 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class AddressWithUserIdDTO {
+public class AddressWithUserIdDTO implements Serializable {
         private Long addressId;
         private String localAddress;
         private String city;
