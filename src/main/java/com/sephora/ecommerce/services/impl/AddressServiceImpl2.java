@@ -10,6 +10,10 @@ import com.sephora.ecommerce.repositories.UserRepository;
 import com.sephora.ecommerce.services.AddressService;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -71,6 +75,7 @@ public class AddressServiceImpl2 implements AddressService {
     }
 
     @Override
+    @Cacheable(value = "addressListCache")
     public List<AddressWithUserIdDTO> getAllAddresses() {
         List<Address> addresses = addressRepository.findAll();
         List<AddressWithUserIdDTO> addressDTOs = addresses.stream()
@@ -80,6 +85,7 @@ public class AddressServiceImpl2 implements AddressService {
     }
 
     @Override
+    @Cacheable(value = "addressCache", key = "#addressId")
     public AddressWithUserIdDTO getAddressById(Long addressId) {
         Address address = addressRepository.findById(addressId)
                 .orElseThrow(() -> new ResourceNotFoundException("Address", "addressId", addressId));
@@ -87,6 +93,8 @@ public class AddressServiceImpl2 implements AddressService {
     }
 
     @Override
+    @CachePut(value = "addressCache", key = "#addressId")
+    @CacheEvict(value = "addressListCache", allEntries = true)
     public AddressWithUserIdDTO updateAddressById(Long addressId, AddressWithUserIdDTO addressDTO) {
         User user = userRepository.findById(addressDTO.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("User", "userId", addressDTO.getUserId()));
@@ -116,6 +124,10 @@ public class AddressServiceImpl2 implements AddressService {
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "addressCache", key = "#addressId"),
+            @CacheEvict(value = "addressListCache", allEntries = true)
+    })
     public String deleteAddress(Long addressId) {
         Address addressFromDB = addressRepository.findById(addressId)
                 .orElseThrow(() -> new ResourceNotFoundException("Address", "addressId", addressId));

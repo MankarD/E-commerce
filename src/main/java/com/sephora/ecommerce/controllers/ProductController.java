@@ -5,6 +5,7 @@ import com.sephora.ecommerce.payloads.ProductDTO;
 import com.sephora.ecommerce.payloads.ProductResponse;
 import com.sephora.ecommerce.services.FileService;
 import com.sephora.ecommerce.services.ProductService;
+import org.json.HTTP;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
@@ -34,6 +35,12 @@ public class ProductController {
     public ResponseEntity<ProductDTO> addProduct(@RequestBody ProductDTO productDTO) {
         ProductDTO savedProductDTO = productService.addProduct(productDTO);
         return new ResponseEntity<>(savedProductDTO, HttpStatus.CREATED);
+    }
+
+    @GetMapping("/public/products/{productId}")
+    public ResponseEntity<ProductDTO> getProductById(@PathVariable Long productId){
+        ProductDTO productDTO = productService.getProductById(productId);
+        return new ResponseEntity<>(productDTO, HttpStatus.FOUND);
     }
 
     @GetMapping("/public/products")

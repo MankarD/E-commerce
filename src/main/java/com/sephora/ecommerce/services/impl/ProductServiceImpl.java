@@ -18,6 +18,10 @@ import lombok.extern.log4j.Log4j2;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -83,6 +87,15 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Cacheable(value = "productCache", key = "#productId")
+    public ProductDTO getProductById(Long productId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product", "id", productId));
+        return modelMapper.map(product, ProductDTO.class);
+    }
+
+    @Override
+    @Cacheable(value = "productListCache", key = "#pageNumber + '-' + #pageSize + '-' + #sortBy + '-' + #sortOrder")
     public ProductResponse getAllProducts(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
         Sort sortByAndOrder = sortOrder.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending()
                 : Sort.by(sortBy).descending();
@@ -111,6 +124,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Cacheable(value = "productListCache", key = "#categoryName + '-' + #pageNumber + '-' + #pageSize + '-' + #sortBy + '-' + #sortOrder")
     public ProductResponse searchByCategory(String categoryName, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
         Category savedCategory = categoryRepository.findByCategoryName(categoryName);
         if(savedCategory == null){
@@ -149,6 +163,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Cacheable(value = "productListCache", key = "#keyword + '-' + #pageNumber + '-' + #pageSize + '-' + #sortBy + '-' + #sortOrder")
     public ProductResponse searchByKeyword(String keyword, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
         Sort sortByAndOrder = sortOrder.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending()
                 : Sort.by(sortBy).descending();
@@ -180,6 +195,8 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @CachePut(value = "productCache", key = "#productId")
+    @CacheEvict(value = "productListCache", allEntries = true)
     public ProductDTO updateProduct(Long productId, ProductDTO productDTO) {
         Product existingProduct = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product", "id", productId));
@@ -229,6 +246,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @CachePut(value = "productCache", key = "#productId")
     public ProductDTO updateProductImage(Long productId, MultipartFile image) throws IOException {
         Product product = productRepository.findById(productId).orElseThrow(() -> new ResourceNotFoundException("Product", "productId", productId));
 
@@ -242,6 +260,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Cacheable(value = "productCache", key = "#imageName")
     public InputStreamResource showProductImage(String imageName) throws FileNotFoundException {
         String realpath = path; // Ensure this path is correct
         InputStream inputStream = fileService.getResource(realpath, imageName);
@@ -249,6 +268,10 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "productCache", key = "#productId"),
+            @CacheEvict(value = "productListCache", allEntries = true)
+    })
     public String deleteProduct(Long productId) {
         Product product = productRepository.findById(productId).orElseThrow(() -> new ResourceNotFoundException("Product", "productId", productId));
         product.getCategories().clear();
