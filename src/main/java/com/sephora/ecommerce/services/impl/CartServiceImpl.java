@@ -13,6 +13,10 @@ import com.sephora.ecommerce.repositories.ProductRepository;
 import com.sephora.ecommerce.services.CartService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -77,6 +81,7 @@ public class CartServiceImpl implements CartService {
     }
 
     @Override
+    @Cacheable(value = "cartListCache")
     public List<CartDTO> getAllCarts() {
         List<Cart> carts = cartRepository.findAll();
 
@@ -96,6 +101,7 @@ public class CartServiceImpl implements CartService {
     }
 
     @Override
+    @Cacheable(value = "cartCache", key = "#cartId")
     public CartDTO getCartByCartIdAndEmailId(String emailId, Long cartId) {
         Cart cart = cartRepository.findCartByEmailAndCartId(emailId, cartId);
         if (cart==null){
@@ -112,6 +118,8 @@ public class CartServiceImpl implements CartService {
     }
 
     @Override
+    @CachePut(value = "cartCache", key = "#cartId")
+    @CacheEvict(value = "cartListCache", allEntries = true)
     public CartDTO updateProductQuantityInCart(Long cartId, Long productId, Integer quantity) {
         Cart cart = cartRepository.findById(cartId).orElseThrow(() -> new ResourceNotFoundException("Cart", "cartId", cartId));
         Product product = productRepository.findById(productId).orElseThrow(() -> new ResourceNotFoundException("Product", "productId", productId));
@@ -176,6 +184,10 @@ public class CartServiceImpl implements CartService {
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "cartCache", key = "#cartId"),
+            @CacheEvict(value = "cartListCache", allEntries = true)
+    })
     public String deleteProductFromCart(Long cartId, Long productId) {
         Cart cart = cartRepository.findById(cartId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cart", "cartId", cartId));

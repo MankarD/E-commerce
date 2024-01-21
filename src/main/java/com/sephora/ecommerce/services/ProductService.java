@@ -13,6 +13,7 @@ import java.util.List;
 
 public interface ProductService {
     ProductDTO addProduct(ProductDTO productDTO);
+    ProductDTO getProductById(Long productId);
     ProductResponse getAllProducts(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder);
     ProductResponse searchByCategory(String categoryName, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder);
     ProductResponse searchByKeyword(String keyword, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder);

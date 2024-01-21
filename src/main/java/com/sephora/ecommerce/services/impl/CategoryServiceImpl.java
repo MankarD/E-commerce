@@ -10,6 +10,8 @@ import com.sephora.ecommerce.repositories.CategoryRepository;
 import com.sephora.ecommerce.services.CategoryService;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -45,6 +47,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @Cacheable(value = "categoryListCache", key = "#pageNumber + '-' + #pageSize + '-' + #sortBy + '-' + #sortOrder")
     public CategoryResponse getAllCategories(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
         Sort sortByAndOrder = sortOrder.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending()
                 : Sort.by(sortBy).descending();
@@ -67,6 +70,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @CacheEvict(value = "categoryListCache", allEntries = true)
     public CategoryDTO updateCategory(String categoryName, String newCategoryName) {
         Category savedCategory = categoryRepository.findByCategoryName(categoryName);
 
@@ -84,6 +88,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @CacheEvict(value = "categoryListCache", allEntries = true)
     public String deleteCategory(String identifier) {
         Category categoryToDelete = categoryRepository.findByCategoryName(identifier);
         if (categoryToDelete != null) {

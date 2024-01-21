@@ -12,6 +12,9 @@ import com.sephora.ecommerce.services.CartService;
 import com.sephora.ecommerce.services.OrderService;
 import com.sephora.ecommerce.services.UserService;
 import org.modelmapper.ModelMapper;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -117,6 +120,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Cacheable(value = "orderCache", key = "#orderId")
     public OrderDTO getOrder(String emailId, Long orderId) {
         Order order = orderRepo.findByEmailAndOrderId(emailId, orderId);
         if(order == null){
@@ -127,6 +131,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Cacheable(value = "orderListCache", key = "#emailId")
     public List<OrderDTO> getOrdersByUser(String emailId) {
         List<Order> orders = orderRepo.findAllByEmail(emailId);
         if (orders.size() == 0){
@@ -138,6 +143,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Cacheable(value = "orderListCache", key = "#pageNumber + '-' + #pageSize + '-' + #sortBy + '-' + #sortOrder")
     public OrderResponse getAllOrders(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
         Sort sortByAndOrder = sortOrder.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending()
                 : Sort.by(sortBy).descending();
@@ -160,6 +166,8 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @CachePut(value = "orderCache", key = "#orderId")
+    @CacheEvict(value = "orderListCache", allEntries = true)
     public OrderDTO updateOrder(String emailId, Long orderId, String orderStatus) {
         Order order = orderRepo.findByEmailAndOrderId(emailId, orderId);
 
